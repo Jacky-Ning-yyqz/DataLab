@@ -1,7 +1,7 @@
 /* 
  * CS:APP Data Lab 
  * 
- * <Please put your name and userid here>
+ * Gao Ning   github ID:Jacky-Ning-yyqz   St ID:25303050027 
  * 
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -146,7 +146,7 @@ NOTES:
  *   Rating: 1
  */
 int signMask(void) {
-  return 1;
+  return 1 << 31;
 }
 
 // P2
@@ -158,7 +158,7 @@ int signMask(void) {
  *   Rating: 2
  */
 int bitXor(int x, int y) {
-	return 2;
+	return ~(~x & ~y) & ~(x & y);
 }
 
 // P3
@@ -170,7 +170,8 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  return 3;
+  int mask = x >> 31;
+  return mask & (~x + 1);
 }
 
 
@@ -185,7 +186,11 @@ int negativePart(int x){
  *   Rating: 4
  */
 int copyByteWithin(int x, int src, int dst) {
-  return 4;
+  int s = src << 3;                    /* src * 8，用左移代替乘法 */
+  int d = dst << 3;
+  int byte = (x >> s) & 0xFF;          /* 取出 src 字节 */
+  int clearMask = ~(0xFF << d);        /* dst 字节位置清零掩码 */
+  return (x & clearMask) | (byte << d);
 }
 
 // P5
@@ -198,7 +203,8 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  return 5;
+  int m = (1 << 31) >> n << 1;   /* 高 n 位全 1 */
+  return (x >> n) & ~m;          /* 擦掉算术右移补进来的符号位 */
 }
 
 // P6
@@ -210,7 +216,9 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int swapNibblePairs(int x) {
-  return 6;
+  int t = 0x0F | (0x0F << 8);
+  int lo = t | (t << 16);
+  return ((x & lo) << 4) | ((x >> 4) & lo);
 }
 
 // P7
@@ -223,7 +231,9 @@ int swapNibblePairs(int x) {
  *   Rating: 4
  */
 int secondLowestZeroBit(int x) {
-  return 7;
+  int z1 = (~x) & (x + 1);
+  int x2 = x | z1;
+  return (~x2) & (x2 + 1);
 }
 
 // P8
@@ -236,7 +246,12 @@ int secondLowestZeroBit(int x) {
  *   Rating: 5
  */
 int oddParity(int x) {
-  return 8;
+  x ^= x >> 16;
+  x ^= x >> 8;
+  x ^= x >> 4;
+  x ^= x >> 2;
+  x ^= x >> 1;
+  return !(x & 1);
 }
 
 // P9
@@ -249,7 +264,11 @@ int oddParity(int x) {
  *   Rating: 5
  */
 int rotateRightBits(int x, int n) {
-  return 9;
+  int m  = n & 31;                        /* n mod 32 */
+  int hi = (1 << 31) >> m << 1;           /* 高 m 位全 1 */
+  int lo = (x >> m) & ~hi;                /* 逻辑右移 m 位 */
+  int up = x << ((~m + 1) & 31);          /* 低 m 位挪到高位 */
+  return lo | up;
 }
 
 // P10
@@ -264,7 +283,9 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-  return 10;
+  int half = 1 << (n + ~0);                    /* 2^(n-1)，用 n+(-1) 避开减号 */
+  int q    = x >> n;
+  return ((x + half + ~0 + (q & 1)) >> n) << n;
 }
 
 // P11
@@ -280,7 +301,13 @@ int roundEvenPow2(int x, int n) {
  *   Rating: 5
  */
 int midpointTowardFirst(int x, int y) {
-  return 11;
+  int d     = x + ~y + 1;                    /* x - y（可能回绕） */
+  int s     = (x ^ y) >> 31;                 /* 同号→0，异号→-1 */
+  int lt    = ((d >> 31) & ~s) | ((x >> 31) & s);  /* x<y ? -1 : 0 */
+  int ge    = lt + 1;                        /* x>=y ? 1 : 0 */
+  int bias  = (x ^ y) & 1;                   /* x+y 奇数 ? 1 : 0 */
+  int fl    = (x & y) + ((x ^ y) >> 1);      /* floor((x+y)/2) */
+  return fl + (bias & ge);
 }
 
 
@@ -294,7 +321,13 @@ int midpointTowardFirst(int x, int y) {
  *   Rating: 7
  */
 int isBetweenEitherOrder(int x, int a, int b) {
-  return 12;
+  int d1 = x + ~a + 1;                          /* x - a */
+  int d2 = x + ~b + 1;                          /* x - b */
+  int s1 = (x ^ a) >> 31;
+  int s2 = (x ^ b) >> 31;
+  int la = ((d1 >> 31) & ~s1) | ((x >> 31) & s1);   /* x < a ? -1 : 0 */
+  int lb = ((d2 >> 31) & ~s2) | ((x >> 31) & s2);   /* x < b ? -1 : 0 */
+  return ((la ^ lb) & 1) | (!d1) | (!d2);
 }
 
 // P13
@@ -307,7 +340,13 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  return 13;
+  int x4  = x << 2;                         /* 4x */
+  int r   = x4 + x;                         /* 5x（可能回绕） */
+  int o4  = (x4 >> 2) ^ x;                  /* 非零 ⟺ 4x 溢出 */
+  int oa  = ((x4 ^ r) & (x ^ r)) >> 31;     /* -1 ⟺ 加法溢出 */
+  int ovf = ((!o4) + ~0) | oa;              /* ← 这里改了 */
+  int sat = (1 << 31) ^ ~(x >> 31);         /* 饱和值 */
+  return r ^ ((r ^ sat) & ovf);
 }
 
 // P14
@@ -320,7 +359,17 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  return 14;
+  int s1 = x + y;
+  int c1 = ((x & y) | ((x | y) & ~s1)) >> 31;      /* x+y 的进位 */
+  int s2 = s1 + z;
+  int c2 = ((s1 & z) | ((s1 | z) & ~s2)) >> 31;    /* (x+y)+z 的进位 */
+
+  int carry  = ~(c1 + c2) + 1;                     /* 进位总数 */
+  int negSum = (x >> 31) + (y >> 31) + (z >> 31);
+  int negCnt = ~negSum + 1;                        /* 负数个数 */
+  int signAdj = (s2 >> 31) & 1;                    /* s<0 ? 1 : 0 */
+
+  return carry + ~negCnt + 1 + signAdj;            /* k */
 }
 
 // P15
@@ -337,9 +386,44 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
-  return 15;
-}
+  int E = (uf >> 23) & 0xFF;              /* 隐式转换，不是 cast */
+  int F = uf & 0x7FFFFF;
+  int sign = uf & 0x80000000;
+  int M, X, M2, e, sh, rb, st;
 
+  if (E == 0xFF) return uf;                    /* NaN / ±Inf */
+  if (E == 0 && F == 0) return uf;             /* ±0 */
+
+  if (E == 0) {                                /* 非规格化 → 规格化 */
+    e = -126;
+    M = F;
+    while ((M & 0x800000) == 0) { M <<= 1; e--; }
+  } else {
+    e = E - 127;                               /* ← 这里原本是 (int)E */
+    M = F | 0x800000;
+  }
+
+  X = M * 3;
+  if (X >= 0x2000000) { sh = 2; st = X & 1; }  /* 用 if 代替三目，更保险 */
+  else                { sh = 1; st = 0; }
+  rb = (X >> (sh - 1)) & 1;
+  M2 = X >> sh;
+  e = e + sh - 1;
+
+  if (rb && (st || (M2 & 1))) M2++;
+  if (M2 >= 0x1000000) { M2 >>= 1; e++; }
+
+  if (e > 127) return sign | 0x7F800000;       /* 上溢 → ±Inf */
+  if (e >= -126) return sign | ((e + 127) << 23) | (M2 & 0x7FFFFF);
+                                               /* ↑ 这里原本是 (unsigned)(e+127) */
+
+  sh = -126 - e;                               /* 下溢到非规格化 */
+  rb = (M2 >> (sh - 1)) & 1;
+  st = (M2 & ((1 << (sh - 1)) - 1)) != 0;
+  M2 = M2 >> sh;
+  if (rb && (st || (M2 & 1))) M2++;
+  return sign | M2;
+}
 // P16
 /* 
  * floatRoundEven - round the floating-point value represented by uf to the
@@ -353,7 +437,33 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Rating: 10
  */
 unsigned floatRoundEven(unsigned uf) {
-  return 16;
+  int E = (uf >> 23) & 0xFF;
+  int F = uf & 0x7FFFFF;
+  int sign = uf & 0x80000000;
+  int M, ip, rest, half, e, sh;
+
+  if (E == 0xFF) return uf;                    /* NaN / Inf */
+
+  if (E < 127) {                               /* |f| < 1 */
+    if (E < 126) return sign;                  /* |f| < 0.5 → ±0 */
+    if (F == 0)  return sign;                  /* 恰好 ±0.5 → 取偶得 ±0 */
+    return sign | 0x3F800000;                  /* → ±1.0 */
+  }
+
+  e = E - 127;                                 /* ← 原本是 (int)E */
+  if (e >= 23) return uf;                      /* 已是整数 */
+
+  M    = F | 0x800000;
+  sh   = 23 - e;
+  ip   = M >> sh;
+  rest = M & ((1 << sh) - 1);
+  half = 1 << (sh - 1);
+
+  if (rest > half || (rest == half && (ip & 1))) ip++;
+
+  if (ip >> (e + 1))                           /* 进位到 2^(e+1) */
+    return sign | ((e + 128) << 23);           /* e+1+127 = e+128 */
+  return sign | ((e + 127) << 23) | ((ip - (1 << e)) << sh);
 }
 
 // P17
@@ -367,7 +477,29 @@ unsigned floatRoundEven(unsigned uf) {
  *   Rating: 10
  */
 unsigned float_i2f(int x) {
-  return 17;
+  unsigned u, sign, mag, M;
+  int e, sh;
+  unsigned rest, half;
+
+  if (x == 0) return 0;
+  u = x;
+  if (x < 0) { sign = 0x80000000u; mag = -u; }   /* 用无符号取负，INT_MIN 也正确 */
+  else       { sign = 0u;          mag = u;  }
+
+  e = 31;
+  while ((mag >> e) == 0u) e--;                  /* e = 最高位位置 */
+
+  if (e <= 23) {
+    M = mag << (23 - e);                          /* 直接左移补零 */
+  } else {
+    sh   = e - 23;
+    M    = mag >> sh;
+    rest = mag & ((1u << sh) - 1u);               /* 被丢弃的位 */
+    half = 1u << (sh - 1);
+    if (rest > half || (rest == half && (M & 1u))) M++;   /* round-to-even */
+  }
+  if (M >= 0x1000000u) { M >>= 1; e++; }          /* 舍入进位 */
+  return sign | ((e + 127) << 23) | (M & 0x7FFFFFu);
 }
 
 
@@ -381,7 +513,20 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  return 18;
+  int m1, m2, m4;
+  m1 = 0x55 | (0x55 << 8);        /* 0x5555 */
+  m1 = m1 | (m1 << 16);           /* 0x55555555 */
+  m2 = 0x33 | (0x33 << 8);        /* 0x3333 */
+  m2 = m2 | (m2 << 16);           /* 0x33333333 */
+  m4 = 0x0F | (0x0F << 8);        /* 0x0F0F */
+  m4 = m4 | (m4 << 16);           /* 0x0F0F0F0F */
+
+  x = (x & m1) + ((x >> 1) & m1);   /* 2 位计数 */
+  x = (x & m2) + ((x >> 2) & m2);   /* 4 位计数 */
+  x = (x + (x >> 4)) & m4;          /* 8 位计数 */
+  x = x + (x >> 8);                 /* 16 位 */
+  x = x + (x >> 16);                /* 32 位 */
+  return x & 0x3F;
 }
 
 // P19
@@ -395,5 +540,20 @@ int bitCount(int x) {
  */
 int bitReverse(int x)
 {
-  return 19;
+  int mask = 0xFF | (0xFF << 8);              /* 0x0000FFFF */
+  x = ((x >> 16) & mask) | (x << 16);         /* 半字交换 */
+
+  mask = mask ^ (mask << 8);                  /* 0x00FF00FF */
+  x = ((x >> 8) & mask) | ((x & mask) << 8);  /* 字节交换 */
+
+  mask = mask ^ (mask << 4);                  /* 0x0F0F0F0F */
+  x = ((x >> 4) & mask) | ((x & mask) << 4);  /* 半字节交换 */
+
+  mask = mask ^ (mask << 2);                  /* 0x33333333 */
+  x = ((x >> 2) & mask) | ((x & mask) << 2);  /* 位对交换 */
+
+  mask = mask ^ (mask << 1);                  /* 0x55555555 */
+  x = ((x >> 1) & mask) | ((x & mask) << 1);  /* 相邻位交换 */
+
+  return x;
 }
